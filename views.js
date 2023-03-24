@@ -49622,6 +49622,12 @@ var SessionGroup = /** @class */ (function (_super) {
         });
         BackgroundDispatch("Sessions.StartBulkOperation", operations);
     };
+    SessionGroup.prototype.exportToShipofy = function () {
+        BackgroundDispatch("Sessions.ExportToShipofy");
+    };
+    SessionGroup.prototype.resetSessions = function () {
+        BackgroundDispatch("Sessions.ResetSessions");
+    };
     SessionGroup.prototype.deleteEverythingInGroup = function (group) {
         var operations = group.rows.map(function (row) {
             return {
@@ -49653,15 +49659,20 @@ var SessionGroup = /** @class */ (function (_super) {
     SessionGroup.prototype.renderGroupMenu = function () {
         var newAction = this.newSession.bind(this, this.props.group.rows.length > 0 ? this.props.group.rows[0].launchUrl : this.props.currentLaunchUrl);
         var openEverythingInGroupBound = this.openEverythingInGroup.bind(this, this.props.group);
+        var exportToShipofyBound = this.exportToShipofy.bind(this);
+        var resetSessionsBound = this.resetSessions.bind(this);
         return react.createElement(IconMenu/* default */.ZP, { desktop: true, iconButtonElement: react.createElement(IconButton.default, { touch: true },
                 react.createElement(settings/* default */.Z, null)) },
             this.props.group.canAddNew ? react.createElement(MenuItem.default, { leftIcon: react.createElement(add_circle_outline/* default */.Z, null), onClick: newAction }, this.props.language.NEW_SESSION) : null,
             this.props.group.canAddNew ? react.createElement(Divider.default, null) : null,
-            react.createElement(MenuItem.default, { leftIcon: react.createElement(open_in_new/* default */.Z, null), onClick: openEverythingInGroupBound }, '同步至Shipofy'),
+            react.createElement(MenuItem.default, { leftIcon: react.createElement(open_in_new/* default */.Z, null), onClick: exportToShipofyBound }, '导出用户凭据至Shipofy'),
+            react.createElement(Divider.default, null),
             react.createElement(MenuItem.default, { leftIcon: react.createElement(open_in_new/* default */.Z, null), onClick: openEverythingInGroupBound }, this.props.language.OPEN_ALL_SITE),
             react.createElement(MenuItem.default, { leftIcon: react.createElement(delete_sweep/* default */.Z, null), onClick: this.deleteAll.bind(this) }, this.props.language.DELETE_ALL),
             this.props.canEdit ? react.createElement(Divider.default, null) : null,
-            this.props.canEdit ? react.createElement(MenuItem.default, { leftIcon: react.createElement(mode_edit/* default */.Z, null), onClick: this.moveAll.bind(this) }, this.props.language.RENAME_GROUP) : null);
+            this.props.canEdit ? react.createElement(MenuItem.default, { leftIcon: react.createElement(mode_edit/* default */.Z, null), onClick: this.moveAll.bind(this) }, this.props.language.RENAME_GROUP) : null,
+            react.createElement(Divider.default, null),
+            react.createElement(MenuItem.default, { leftIcon: react.createElement(delete_sweep/* default */.Z, null), onClick: resetSessionsBound }, '重置用户凭据'));
     };
     SessionGroup.prototype.render = function () {
         var _this = this;

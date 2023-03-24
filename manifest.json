@@ -2,9 +2,9 @@
 "update_url": "https://clients2.google.com/service/update2/crx",
 
   "manifest_version": 2,
-  "name": "SessionBox - Multi login to any website",
-  "short_name": "SessionBox",
-  "version": "1.8.4",
+  "name": "SessionCube - Multi login to hololive shop",
+  "short_name": "SessionCube",
+  "version": "0.1",
   "minimum_chrome_version": "45",
   "default_locale": "en",
   "icons": {
@@ -26,7 +26,7 @@
       "19": "assets/Icon19.png",
       "38": "assets/Icon38.png"
     },
-    "default_title": "SessionBox",
+    "default_title": "SessionCube",
     "default_popup": "views.html"
   },
   "commands": {
@@ -67,6 +67,7 @@
   ],
   "description": "__MSG_PROMO_SHORT__",
   "permissions": [
+    "alarms",
     "tabs",
     "activeTab",
     "idle",

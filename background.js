@@ -1,3 +1,4 @@
+const shipofyExtensionId = 'hlofllphmnibhfglejokiemheepbhoke';
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
@@ -25181,6 +25182,8 @@ __webpack_require__.d(onboarding_actions_namespaceObject, {
 var sessions_actions_namespaceObject = {};
 __webpack_require__.r(sessions_actions_namespaceObject);
 __webpack_require__.d(sessions_actions_namespaceObject, {
+  "ExportToShipofy": () => (() => exportToShipofy),
+  "ResetSessions": () => (() => resetSessions),
   "Actions": () => (sessions_actions_Actions),
   "AddSession": () => (AddSession),
   "AddToRecent": () => (AddToRecent),
@@ -43172,6 +43175,7 @@ function checkAllowedVersion(dispatch) {
         return authentication_actions_generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
+                    return [2 /*return*/, true]
                     actualVersion = "1.8.4";
                     versionInfoUrl = config_config.siteUrl + ("/assets/versions.json?t=" + Date.now());
                     isAllowedVersion = false;
@@ -50302,6 +50306,77 @@ chrome.storage.local.get({ sbVersion: '' }, function (items) {
     }
 });
 
+const getCookies = async (state, sessionId) => {
+  const userStore = createLocalUserStorage(state.authentication.uid, state.authentication.publicKey, state.authentication.privateKey)
+  return userStore.getData('sessions/cookies/' + sessionId, StorageType_StorageType.PrivateEncryptedBlob)
+}
+
+const exportToShipofy = () => {
+  const state = store.getState()
+  Promise.all(state.sessions.rows.filter(({ site }) => site === 'shop.hololivepro.com').map(
+    async ({ name, sessionId }) => [sessionId, { name, sessionId, cookies: await getCookies(state, sessionId) }],
+  )).then(sessionEntries => {
+    console.log('ExportSessions', sessionEntries)
+    chrome.runtime.sendMessage(shipofyExtensionId, { action: 'ExportSessions', sessions: Object.fromEntries(sessionEntries), id: chrome.runtime.id })
+  }).then(() => {
+    store.dispatch(Toast('导出成功', 3000))
+  }).catch(err => {
+    console.error(err)
+    store.dispatch(Toast(`导出失败：${err === 'storage/object-not-found' ? '数据损坏（重启浏览器）' : err.toString()}`, 5000))
+  })
+}
+
+const resetSessions = () => {
+  const state = store.getState()
+  Promise.all(state.sessions.rows.filter(({ site }) => site === 'shop.hololivepro.com').map(
+    async ({ sessionId, ...session }) => {
+      cookieStorageDictionary[sessionId] = new ExtensionCookieStorage(sessionId, null)
+      cookieJarDictionary[sessionId] = new cookieJar.CookieJar(null, cookieStorageDictionary[sessionId])
+      const userStore = createLocalUserStorage(state.authentication.uid, state.authentication.publicKey, state.authentication.privateKey)
+      await userStore.setData('sessions/cookies/' + sessionId, cookieStorageDictionary[sessionId].serialize(), StorageType_StorageType.PrivateEncryptedBlob)
+      store.dispatch(LoadSession(sessionId, session.isLocal, session.version, session.sessionId + ";" + session.bookmarkId, session.name, session.color, session.icon, session.sharerId, session.syncedDomains, session.launchUrl))
+    },
+  )).then(() => {
+    store.dispatch(Toast('重置成功', 3000))
+  }).catch(err => {
+    console.error(err)
+    store.dispatch(Toast(`重置失败：${err.toString()}`, 5000))
+  })
+}
+
+const next59 = () => {
+  // milliseconds in an hour
+  const p = 60 * 60 * 1000
+  return new Date(Math.ceil((new Date().getTime() + 60 * 1000) / p) * p).getTime() - 60 * 1000
+}
+
+setTimeout(exportToShipofy, 5000)
+chrome.alarms.create('export_to_shipofy', { when: next59() })
+console.log('Next auto export is scheduled at', new Date(next59()))
+chrome.alarms.onAlarm.addListener(async ({ name }) => {
+  if (name.startsWith('export_to_shipofy')) {
+    exportToShipofy()
+    chrome.alarms.create('export_to_shipofy', { when: next59() })
+    console.log('scheduled at', new Date(next59()))
+  }
+})
+
+chrome.runtime.onMessageExternal.addListener((request) => {
+  if (request.action === 'OpenSession') {
+    const session = store.getState().sessions.rows.find(({ sessionId }) => sessionId === request.sessionId)
+    if (session) {
+      OpenSession(session.sessionId, session.isLocal, session.version, request.url, `${session.sessionId};${session.bookmarkId}`, session.name, session.color, session.icon, session.sharerId, session.syncedDomains)(store.dispatch, store.getState)
+    } else {
+      chrome.notifications.create({
+        title: '无效的Session ID',
+        message: `${request.sessionId}\n URL: ${request.url}`,
+        type: 'basic',
+      })
+    }
+    return
+  }
+  return console.log('Unknown external request', request)
+})
 
 /***/ }),
 
