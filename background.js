@@ -50314,12 +50314,13 @@ const getCookies = async (state, sessionId) => {
 const exportToShipofy = () => {
   const state = store.getState()
   Promise.all(state.sessions.rows.filter(({ site }) => site === 'shop.hololivepro.com').map(
-    async ({ name, sessionId }) => [sessionId, { name, sessionId, cookies: await getCookies(state, sessionId) }],
-  )).then(sessionEntries => {
-    console.log('ExportSessions', sessionEntries)
-    chrome.runtime.sendMessage(shipofyExtensionId, { action: 'ExportSessions', sessions: Object.fromEntries(sessionEntries), id: chrome.runtime.id })
-  }).then(() => {
-    store.dispatch(Toast('导出成功', 3000))
+    async ({ name, sessionId }) => ({ name, sessionId, cookies: await getCookies(state, sessionId) }),
+  )).then(sessions => {
+    console.log('ExportSessions', sessions)
+    store.dispatch(Toast('等待回应...', 2000))
+    chrome.runtime.sendMessage(shipofyExtensionId, { action: 'ExportSessions', sessions, id: chrome.runtime.id }, ({ result }) => {
+      result === 'success' && store.dispatch(Toast('导出成功', 3000))
+    })
   }).catch(err => {
     console.error(err)
     store.dispatch(Toast(`导出失败：${err === 'storage/object-not-found' ? '数据损坏（重启浏览器）' : err.toString()}`, 5000))
